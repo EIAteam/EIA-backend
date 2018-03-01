@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin
+from rest_framework import mixins
 from rest_framework import viewsets
 from .serializers import UserRegisterSerializer, UserDetailSerializer
 from rest_framework import permissions
@@ -10,7 +10,7 @@ from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 User = get_user_model()
 
 
-class UserViewset(CreateModelMixin, RetrieveModelMixin, viewsets.GenericViewSet):
+class UserViewset(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     """
     用户注册与获取用户信息
     """
@@ -38,6 +38,6 @@ class UserViewset(CreateModelMixin, RetrieveModelMixin, viewsets.GenericViewSet)
 
         return []
 
-    # 重载，如此retrieve与delete都是针对当前登陆的用户,/user/:id参数可以随意设定或者不设定都不影响
+    # 重载，如此retrieve与delete都是针对当前登陆的用户,/user/:id参数可以随意设定不影响
     def get_object(self):
         return self.request.user

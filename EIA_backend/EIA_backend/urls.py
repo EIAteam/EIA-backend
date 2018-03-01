@@ -22,10 +22,15 @@ from rest_framework_jwt.views import obtain_jwt_token
 from users.views import UserViewset
 from rest_framework.routers import DefaultRouter
 from django.views.generic import TemplateView
+from company.views import CompanyListViewSet,CompanyViewSet
 
 router = DefaultRouter()
 
 router.register(r'users', UserViewset, base_name="users")
+
+router.register(r'companyList', CompanyListViewSet, base_name="companyList")
+
+router.register(r'company', CompanyViewSet, base_name="company")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
