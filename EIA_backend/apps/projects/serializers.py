@@ -23,3 +23,8 @@ class ProjectListSerializer(serializers.ModelSerializer):
         model = Project
         fields = ('id', 'projectName', 'projectType', 'projectStatus', 'createTime', 'updateTime', 'agencyMessage',
                   'workerMessage', 'isMaterialEnough')
+
+class ProjectRetrieveSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=Project
+        fields="__all__"

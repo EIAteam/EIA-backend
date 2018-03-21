@@ -3,7 +3,7 @@ from rest_framework import mixins
 from rest_framework import viewsets
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
-from .serializers import ProjectCreateSerializer, ProjectUpdateSerializer, ProjectListSerializer
+from .serializers import ProjectCreateSerializer, ProjectUpdateSerializer, ProjectListSerializer,ProjectRetrieveSerializer
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from .models import Project
 from company.models import Company
@@ -12,7 +12,7 @@ from company.models import Company
 User = get_user_model()
 
 
-class ProjectViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
+class ProjectViewSet(mixins.RetrieveModelMixin,mixins.ListModelMixin, mixins.UpdateModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
     queryset = Project.objects.all()
     permission_classes = (IsAuthenticated,)
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
@@ -35,3 +35,5 @@ class ProjectViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, mixins.Crea
             return ProjectUpdateSerializer
         elif self.action == 'partial_update':
             return ProjectUpdateSerializer
+        elif self.action == 'retrieve':
+            return ProjectRetrieveSerializer
