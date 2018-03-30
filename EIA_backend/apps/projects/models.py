@@ -72,6 +72,8 @@ class Project(models.Model):
     yearWorkTime = models.FloatField(blank=True,null=True, verbose_name="年工作时间")
     investmentTime = models.FloatField(blank=True, null=True, verbose_name="投产时间(年)")
     annualPowerConsumption = models.FloatField(null=True, verbose_name="电年耗量(万kwh/a)")
+    annualLeftover = models.FloatField(null=True, verbose_name="边角料年产量")
+    energyUse = models.CharField(max_length=255, null=True, verbose_name="能源使用情况")
     east = models.CharField(blank=True,max_length=255, null=True, verbose_name="东 ")
     south = models.CharField(blank=True,max_length=255, null=True, verbose_name="南")
     west = models.CharField(blank=True,max_length=255, null=True, verbose_name="西")
@@ -98,6 +100,7 @@ class Project(models.Model):
     product = models.TextField(blank=True,null=True,default='[{}]',verbose_name="产品")
     material = models.TextField(blank=True,null=True,default='[{}]', verbose_name="材料")
     equipment = models.TextField(blank=True,null=True,default='[{}]', verbose_name="设备")
+    exhaustGas = models.TextField(blank=True, null=True, default='[{}]', verbose_name="废气信息")
     emissionStandard = models.TextField(null=True,default='[{"standard":"","pollutant":"","pollutantOptions":[],"emissionMonitoring":"","maximumAllowableEmissionRate":"","maximumAllowableEmissionConcentration":""}]',verbose_name='废弃排放标准')
     environmentalEngineering = models.TextField(null=True,default='[{"project":"环保工程","content":"","use":""}]',verbose_name='环保工程')
     otherEngineering = models.TextField(null=True,default=

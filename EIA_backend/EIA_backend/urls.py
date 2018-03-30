@@ -24,6 +24,7 @@ from rest_framework.routers import DefaultRouter
 from django.views.generic import TemplateView
 from company.views import CompanyViewSet, MembershipViewSet
 from projects.views import ProjectViewSet
+from projects import VBA,DocGenTest
 
 router = DefaultRouter()
 
@@ -45,7 +46,8 @@ urlpatterns = [
 
     # drf 自带auth
     url(r'^api-token-auth/', views.obtain_auth_token),
-
+    url(r'^api/VBA/create/(?P<projectName>[\u4e00-\u9fa5_a-zA-Z0-9_]+)/$', VBA.testVBA , name='testVBA'),
+    url(r'^api/Word/create/(?P<projectName>[\u4e00-\u9fa5_a-zA-Z0-9_]+)/$', DocGenTest.createWord , name='createWord'),
     # jwt auth
     url(r'^login/', obtain_jwt_token),
 

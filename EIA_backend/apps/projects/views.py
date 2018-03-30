@@ -37,3 +37,5 @@ class ProjectViewSet(mixins.RetrieveModelMixin,mixins.ListModelMixin, mixins.Upd
             return ProjectUpdateSerializer
         elif self.action == 'retrieve':
             return ProjectRetrieveSerializer
+
+
