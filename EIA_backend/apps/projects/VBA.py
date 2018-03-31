@@ -986,7 +986,7 @@ def SearchGas(wb2,materialList,equipmentList,Project):
     for element in gaslist:
         item = {}
         item["gasName"] = element
-        item["remark"] = "有组织排放"
+        item["remark"] = ""
         gasjson.append(item)
     print(str(gasjson))
     newjson = str(gasjson).replace("'",'"')

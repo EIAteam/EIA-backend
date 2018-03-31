@@ -82,7 +82,16 @@ def replace_word(project,document):
     replace_text("信息7", project.contacts, document)
     replace_text("信息8", project.telephone, document)
     replace_text("信息9", project.postalCode,document)
-    replace_text("信息1 ", project.NEIType,document)
+    replace_text("信息1", project.NEIType,document)
+    gastext = "项目生产过程中大气污染主要为"
+    exhaustGas = json.loads(project.exhaustGas)
+    for i in range(len(exhaustGas)):
+        gasName = exhaustGas[i]['gasName']
+        if(i!= len(exhaustGas)-1):
+            gastext = gastext+gasName+"、"
+        else:
+            gastext = gastext + gasName
+    replace_text("大气污染1", gastext, document)
     print("finish")
 def table_creater(name,wb,columns,cell,i,column,styles):
     if (cell.text == name):
@@ -95,23 +104,19 @@ def table_creater(name,wb,columns,cell,i,column,styles):
         newtable=cell.add_table(nrows,columns)
         for s in styles:
             if s.name == "Table Grid":
-                print(s.name)
                 newtable.style=s
         for a in range(0, nrows):
             for b in range(0, columns):
-                print(str(a), str(b), sheet[a, b].value)
                 if (sheet[a, b].value == None):
                     newtable.cell(a, b).text = " "
                 else:
                     newtable.cell(a, b).text = str(sheet[a, b].value)
         cell.merge(column.cells[i])
         cell.merge(column.cells[i-2])
-        print(cell.text)
-        print(column.cells[i-2].text)
 def create_tables(project,document):
     pythoncom.CoInitialize()
-    #app = xw.App(add_book=False)
-    #wb = app.books.open(project.projectName+".xlsx")
+    app = xw.App(add_book=False)
+    wb = app.books.open(project.projectName+".xlsx")
     styles = document.styles
     for table in document.tables:
         for column in table.columns:
@@ -198,8 +203,6 @@ def create_tables(project,document):
                             newtable.cell(t, 0).merge(newtable.cell(t, 1))
                     cell.merge(column.cells[i])
                     cell.merge(column.cells[i - 2])
-                # wb.close()
-                # app.quit()
                 if (cell.text == "废气排放标准表"):
                     emissionStandard = json.loads(project.emissionStandard)
                     rows = len(emissionStandard) + 1
@@ -222,13 +225,82 @@ def create_tables(project,document):
                         newtable.cell(t,4).text = emissionStandard[t - 1]["standard"]
                     cell.merge(column.cells[i])
                     cell.merge(column.cells[i - 2])
-
-
-
+                if (cell.text == "废气部分"):
+                    for p in cell.paragraphs:
+                        for r in p.runs:
+                            if(r.text=="废气"):
+                                formalrun = r
+                    formalstyle = formalrun.style
+                    exhaustGas = json.loads(project.exhaustGas)
+                    for t in range(len(exhaustGas)):
+                        gasName = exhaustGas[t]['gasName']
+                        gassheet = wb.sheets[gasName]
+                        basesheet = wb.sheets["废气信息"]
+                        print(exhaustGas[t]['remark'])
+                        if(exhaustGas[t]['remark']==1):
+                            newtable = cell.add_table(3, 9)
+                            for a in range(0, 3):
+                                for b in range(0, 9):
+                                    if (gassheet[a+1, b+7].value == None):
+                                        newtable.cell(a, b).text = " "
+                                    else:
+                                        newtable.cell(a, b).text = str(gassheet[a+1, b+7].value)
+                            for s in styles:
+                                if s.name == "Table Grid":
+                                    newtable.style = s
+                        elif (exhaustGas[t]['remark'] == 2):
+                            newtable = cell.add_table(3, 7)
+                            for a in range(0, 3):
+                                for b in range(0, 7):
+                                    if (gassheet[a + 6, b + 7].value == None):
+                                        newtable.cell(a, b).text = " "
+                                    else:
+                                        newtable.cell(a, b).text = str(gassheet[a +6, b + 7].value)
+                            for s in styles:
+                                if s.name == "Table Grid":
+                                    newtable.style = s
+                        elif (exhaustGas[t]['remark'] == 3):
+                            newtable = cell.add_table(3, 5)
+                            for a in range(0, 3):
+                                for b in range(0, 5):
+                                    if (gassheet[a + 11, b + 7].value == None):
+                                        newtable.cell(a, b).text = " "
+                                    else:
+                                        newtable.cell(a, b).text = str(gassheet[a +11, b + 7].value)
+                            for s in styles:
+                                if s.name == "Table Grid":
+                                    newtable.style = s
+                        for p in cell.paragraphs:
+                            if(p.text == ""):
+                                r = p.add_run(text="(" + str(t+1) + ")" + gasName + ":", style=formalstyle)
+                                r.add_text(basesheet["L"+str((t+1)*7+1)].value)
+                    cell.merge(column.cells[i])
+                    cell.merge(column.cells[i - 2])
+                if (cell.text == "废气2"):
+                    exhaustGas = json.loads(project.exhaustGas)
+                    basep = ""
+                    for p in cell.paragraphs:
+                        if (p.text == "废气2"):
+                            basep = p
+                    for t in range(len(exhaustGas)):
+                        gasName = exhaustGas[t]['gasName']
+                        basesheet = wb.sheets["废气信息"]
+                        r = basep.add_run(text="(" + str(t+1) + ")" + gasName + ":"+"\n")
+                        r = basep.add_run(text=basesheet["L"+str((t+1)*7+1)].value + "\n")
+                    cell.merge(column.cells[i])
+                    cell.merge(column.cells[i - 2])
+                if(cell.text == "噪声表"):
+                    table_creater("噪声表", wb, 5, cell, i, column, styles)
+                if(cell.text == "三表"):
+                    table_creater("三表", wb, 5, cell, i, column, styles)
+                if(cell.text =="三同时表"):
+                    table_creater("三同时表", wb, 5, cell, i, column, styles)
+    wb.close()
+    app.quit()
 def createWord(request,projectName):
     document = Document('评估报告(新建模板).docx')
     project = Project.objects.get(projectName=projectName)
     print(projectName)
-    #replace_word(project,document)
+    replace_word(project,document)
     create_tables(project,document)
     document.save('demo.docx')
