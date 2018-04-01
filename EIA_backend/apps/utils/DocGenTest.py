@@ -11,8 +11,7 @@ from docx import Document
 from docx.shared import Inches
 from docx.enum.style import WD_STYLE_TYPE
 import json
-from .models import Project
-
+from projects.models import Project
 def replace_text(old_text, new_text,document):
     for p in document.paragraphs:
         if old_text in p.text:
@@ -116,7 +115,7 @@ def table_creater(name,wb,columns,cell,i,column,styles):
 def create_tables(project,document):
     pythoncom.CoInitialize()
     app = xw.App(add_book=False)
-    wb = app.books.open(project.projectName+".xlsx")
+    wb = app.books.open('C:\\文件库\\Projects\\Company' + str(project.company_id) + '\\'+ project.projectName +"\\" + project.projectName +".xlsx")
     styles = document.styles
     for table in document.tables:
         for column in table.columns:
@@ -236,7 +235,13 @@ def create_tables(project,document):
                         gasName = exhaustGas[t]['gasName']
                         gassheet = wb.sheets[gasName]
                         basesheet = wb.sheets["废气信息"]
-                        print(exhaustGas[t]['remark'])
+                        gassheet.range('a13').value = exhaustGas[t]['material']
+                        gassheet.range('c13').value = exhaustGas[t]['usage']
+                        gassheet.range('e13').value = exhaustGas[t]['ratio']
+                        gassheet.range('h4').value = str(float(gassheet.range('c13').value * float(gassheet.range('e13').value)))  # 待改
+                        gassheet.range('h9').value = str(float(gassheet.range('c13').value * float(gassheet.range('e13').value)))  # 待改
+                        gassheet.range('h14').value = str(float(gassheet.range('c13').value) * 1000)
+                        gassheet.range('i14').value = str(float(gassheet.range('e13').value))
                         if(exhaustGas[t]['remark']==1):
                             newtable = cell.add_table(3, 9)
                             for a in range(0, 3):
@@ -298,9 +303,9 @@ def create_tables(project,document):
     wb.close()
     app.quit()
 def createWord(request,projectName):
-    document = Document('评估报告(新建模板).docx')
     project = Project.objects.get(projectName=projectName)
+    document = Document('C:\\文件库\\模板\\评估报告(新建模板).docx')
     print(projectName)
     replace_word(project,document)
     create_tables(project,document)
-    document.save('demo.docx')
+    document.save('C:\\文件库\\Projects\\Company' + str(project.company_id) + '\\'+ project.projectName +"\\" + project.projectName + "(初稿).docx")

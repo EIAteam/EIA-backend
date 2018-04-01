@@ -24,7 +24,7 @@ from rest_framework.routers import DefaultRouter
 from django.views.generic import TemplateView
 from company.views import CompanyViewSet, MembershipViewSet
 from projects.views import ProjectViewSet
-from projects import VBA,DocGenTest,Updownload
+from utils import VBA,DocGenTest,Updownload
 
 router = DefaultRouter()
 

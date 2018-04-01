@@ -1,8 +1,7 @@
 from django.http import HttpResponse
 import os
 from django.http import StreamingHttpResponse
-from .models import Project
-
+from projects.models import Project
 def getfileextension(s):
     i = len(s) - 1
     while(s[i]!='.'):

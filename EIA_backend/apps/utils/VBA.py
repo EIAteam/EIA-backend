@@ -6,7 +6,7 @@ import random
 import json
 from django.http import HttpResponse
 from django.shortcuts import render,redirect
-from .models import Project
+from projects.models import Project
 class Product:
     def __init__(self, productsName,num,unit,remark):
         self.productsName=productsName
@@ -72,7 +72,9 @@ def EquipJsonToList(data):
     return equiplist
 def testVBA(request,projectName):
     project = Project.objects.get(projectName=projectName)
-    print(projectName)
+    exceldir = os.path.join('C:\\文件库', 'Projects', 'Company' + str(project.company_id), projectName)
+    if not os.path.isdir(exceldir):
+        os.makedirs(exceldir)
     equipmentlist = EquipJsonToList(project.equipment)
     materiallist = MaterialJsonToList(project.material)
     productlist = ProductJsonToList(project.product)
@@ -81,10 +83,6 @@ def testVBA(request,projectName):
 def dataComputingMarco(Project,equipmentlist,productlist,materiallist):
     pythoncom.CoInitialize()
     app=xw.App(add_book=False)
-    #app = xw.App(visible=False, add_book=False)  # visible是否打开文件
-    #app.display_alerts = False
-    #app.screen_updating = False
-
     # 打开xlsm工作簿
     excelName = str(Project.projectName) + '.xlsx'
     #wb = app.books.open(excelName)
@@ -95,45 +93,19 @@ def dataComputingMarco(Project,equipmentlist,productlist,materiallist):
     wb.sheets.add('三表')
     wb.sheets.add('废气信息')
     wb.sheets.add('三同时表')
-
-    '''''
-    if wb.sheets['数据'] is None:
-        wb.sheets.add('数据')
-    if wb.sheets['扩建前废水污染源'] is None:
-        wb.sheets.add('扩建前废水污染源')
-    if wb.sheets['扩建后废水污染源'] is None:
-        wb.sheets.add('扩建后废水污染源')
-    if wb.sheets['噪声表'] is None:
-        wb.sheets.add('噪声表')
-    '''
-    #sht = wb.sheets['数据']
     sht=wb.sheets['数据']
     data(sht, Project)
-
     sht = wb.sheets['废水污染源']
-
     wastewaterPollutionSourceBeforeExpansion(wb, sht, Project)
-
-    #sht = wb.sheets['扩建后废水污染源']
-    #sht = wb.sheets[2]
-    #wastewaterPollutionSourceAfterExpansion(wb, sht, Project)
-
     sht = wb.sheets['噪声表']
-
     noiseTable(sht, Project)
-
     threeTable(wb.sheets['三表'],wb.sheets['数据'],Project,equipmentlist,productlist,materiallist)#三表
-
-
     SearchGas(wb,materiallist,equipmentlist,Project)#废气检索
-
     sht=wb.sheets['三同时表']
-
     threeSameTimeTable(sht,Project,wb,equipmentlist)#三同时表
-
     fillTable(Project, productlist, wb.sheets['三表'])#填写表格
-
-    wb.save(excelName)
+    exceldir = os.path.join('C:\\文件库', 'Projects', 'Company' + str(Project.company_id), Project.projectName)
+    wb.save(os.path.join(exceldir,excelName))
     wb.close()
     app.quit()
 def data(sht, Project):
@@ -806,7 +778,7 @@ def SearchGas(wb2,materialList,equipmentList,Project):
     app = xw.App(visible=False, add_book=False)  # visible是否打开文件
     app.display_alerts = False
     app.screen_updating = False
-    wb = app.books.open('U:\\新建环评报告_A6.xlsm')
+    wb = app.books.open('C:\\文件库\\模板\\新建环评报告_A6.xlsm')
     gaslist=[]
     lr1=len(materialList)
     lr2=len(equipmentList)
@@ -898,7 +870,8 @@ def SearchGas(wb2,materialList,equipmentList,Project):
         sht2.range('b13').value = sht.range('n' + str(i)).value
         sht2.range('c13').value = sht.range('o' + str(i)).value
         sht2.range('e13').value = sht.range('g' + str(i)).value
-
+        sht2.range('c4').value = Project.gasCylinderHeight
+        sht2.range('c5').value = Project.airQuantity
         #有组织排放
         # TODO: 设置格式
         sht2.range('h1').value='有组织排放'
@@ -925,12 +898,11 @@ def SearchGas(wb2,materialList,equipmentList,Project):
         sht2.range('h4').value=str(float(sht2.range('c13').value*float(sht2.range('e13').value)))#待改
         sht2.range('i4').value = str(float(sht2.range('h4').value)*float(sht2.range('c10').value))
         sht2.range('j4').value=str(float(sht2.range('i4').value)*1000/float(sht2.range('c7').value)/float(sht2.range('c8').value))
-        #sht2.range('k4').value=str(float(sht2.range('j4').value)*1000*1000/float(sht2.range('c5').value))
-        sht2.range('k4').value='待填（[c3]*1000*1000/风量）'
+        sht2.range('k4').value=str(float(sht2.range('j4').value)*1000*1000/float(sht2.range('c5').value))
+        sht2.range('k4').value=str(float(sht2.range('c4').value)*1000*1000/float(sht2.range('c5').value))
         sht2.range('l4').value=str(float(sht2.range('i4').value)*(1-float(sht2.range('c11').value)))
         sht2.range('m4').value = str(float(sht2.range('j4').value) * (1 - float(sht2.range('c11').value)))
-        #sht2.range('n4').value = str(float(sht2.range('k4').value) * (1 - float(sht2.range('c11').value)))
-        sht2.range('n4').value ='待填（k4*(1-c11)）'
+        sht2.range('n4').value = str(float(sht2.range('k4').value) * (1 - float(sht2.range('c11').value)))
         sht2.range('o4').value = str(float(sht2.range('h4').value)-float(sht2.range('i4').value))
         sht2.range('p4').value = str(float(sht2.range('o4').value) * 1000 / float(sht2.range('c7').value) / float(sht2.range('c8').value))
 
@@ -980,23 +952,25 @@ def SearchGas(wb2,materialList,equipmentList,Project):
         sht2.range('k14').value=str(float(sht2.range('h14').value)*float(sht2.range('i14').value)/1000)
         sht2.range('l14').value=str(float(sht2.range('k14').value))
         sht2.range('j14').value=str(float(sht2.range('k14').value)/float(sht2.range('c7').value)/float(sht2.range('c8').value))
-    wb.close()
-    app.quit()
     gasjson = []
     for element in gaslist:
         item = {}
         item["gasName"] = element
         item["remark"] = ""
+        item["material"] = wb2.sheets[str(element)].range("A13").value
+        item["usage"] = wb2.sheets[str(element)].range("C13").value
+        item["ratio"] = wb2.sheets[str(element)].range("E13").value
         gasjson.append(item)
     print(str(gasjson))
     newjson = str(gasjson).replace("'",'"')
     print(newjson)
     Project.exhaustGas = newjson
     Project.save()
+    wb.close()
+    app.quit()
 def fillTable(Project,productlist,threetable):
     #填写表格1
-    filePath=os.path.join(os.curdir,'0-基本资料','基础信息表1.xlsx')
-    wb=xw.books.open(filePath)
+    wb=xw.books.open("C:\\文件库\\模板\\0-基本资料\\基础信息表1.xlsx")
     sht=wb.sheets[0]
     sht.range('d2').value=Project.projectName
     sht.range('d3').value=Project.projectName+Project.constructionScale
@@ -1036,12 +1010,12 @@ def fillTable(Project,productlist,threetable):
     sht.range('m15').value=Project.EAcompanyCertificatenumber
     sht.range('m16').value =Project.EAcompanyTelephone
     sht.range('j17').value = Project.EAcompanyAddress
-    wb.save(os.path.join(os.curdir,Project.nameAbbreviation+'-建设项目环评审批基础信息表V1013版.xlsx'))
+    exceldir = os.path.join('C:\\文件库', 'Projects', 'Company' + str(Project.company_id), Project.projectName)
+    wb.save(os.path.join(exceldir,Project.nameAbbreviation+'-建设项目环评审批基础信息表V1013版.xlsx'))
     wb.close()
 
     #填写表格2
-    filePath=os.path.join(os.curdir,'0-基本资料','基础信息表2.xlsx')
-    wb=xw.books.open(filePath)
+    wb=xw.books.open("C:\\文件库\\模板\\0-基本资料\\基础信息表2.xlsx")
     shtnew=wb.sheets[0]
     print(shtnew.range('b3').value)
     shtnew.range('d2').value=Project.projectName
@@ -1090,8 +1064,8 @@ def fillTable(Project,productlist,threetable):
     shtnew.range('j38').value =Project.managementSpace
     shtnew.range('d39').value =Project.businessRange
     shtnew.range('d43').value =threetable.range('i2').value
-
-    wb.save(os.path.join(os.curdir,Project.nameAbbreviation+'-建设项目环评审批基础信息表（导入）V0731.xlsx'))
+    exceldir = os.path.join('C:\\文件库', 'Projects', 'Company' + str(Project.company_id), Project.projectName)
+    wb.save(os.path.join(exceldir,Project.nameAbbreviation+'-建设项目环评审批基础信息表（导入）V0731.xlsx'))
     wb.close()
 
 
