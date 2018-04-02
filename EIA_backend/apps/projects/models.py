@@ -8,7 +8,6 @@ User = get_user_model()
 
 # Create your models here.
 
-
 class Project(models.Model):
     """
     项目
@@ -72,6 +71,8 @@ class Project(models.Model):
     yearWorkTime = models.FloatField(blank=True,null=True, verbose_name="年工作时间")
     investmentTime = models.FloatField(blank=True, null=True, verbose_name="投产时间(年)")
     annualPowerConsumption = models.FloatField(null=True, verbose_name="电年耗量(万kwh/a)")
+    annualLeftover = models.FloatField(null=True, verbose_name="边角料年产量")
+    energyUse = models.CharField(max_length=255, null=True, verbose_name="能源使用情况")
     east = models.CharField(blank=True,max_length=255, null=True, verbose_name="东 ")
     south = models.CharField(blank=True,max_length=255, null=True, verbose_name="南")
     west = models.CharField(blank=True,max_length=255, null=True, verbose_name="西")
@@ -98,6 +99,7 @@ class Project(models.Model):
     product = models.TextField(blank=True,null=True,default='[{}]',verbose_name="产品")
     material = models.TextField(blank=True,null=True,default='[{}]', verbose_name="材料")
     equipment = models.TextField(blank=True,null=True,default='[{}]', verbose_name="设备")
+    exhaustGas = models.TextField(blank=True, null=True, default='[{}]', verbose_name="废气信息")
     emissionStandard = models.TextField(null=True,default='[{"standard":"","pollutant":"","pollutantOptions":[],"emissionMonitoring":"","maximumAllowableEmissionRate":"","maximumAllowableEmissionConcentration":""}]',verbose_name='废弃排放标准')
     environmentalEngineering = models.TextField(null=True,default='[{"project":"环保工程","content":"","use":""}]',verbose_name='环保工程')
     otherEngineering = models.TextField(null=True,default=
@@ -118,14 +120,17 @@ class Project(models.Model):
     sensitiveInfoHouse = models.TextField(null=True,default=
     '[{"environmentalElements":"","orientation":"","distance":"","environmentalObjective":""}]',
                                               verbose_name='水源保护区环境要素')
+    noiseMonitoringPoints = models.IntegerField(null=True, verbose_name="噪声监测点数目")
 
+    gasCylinderHeight = models.FloatField(blank=True,null=True, verbose_name="排风筒高度(m)")
 
+    airQuantity = models.FloatField(blank=True, null=True, verbose_name="风量(m3/h)")
     """
     保留字段        
     """
 
     noiseEquipment = models.CharField(max_length=50, null=True, verbose_name="噪声污染源设备")
-    noiseMonitoringPoints = models.IntegerField(null=True, verbose_name="噪声监测点数目")
+
     annualSolidWasteOutput = models.FloatField(null=True, verbose_name="包装袋年产量(t/a)")
 
     intermediarySourcesCompleted = models.CharField(max_length=5, blank=True, null=True, verbose_name="")
