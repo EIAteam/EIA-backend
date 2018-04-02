@@ -14,13 +14,13 @@ class Project(models.Model):
     项目
     """
     PROJECTTYPE_CHOICES = (
-        ('none', '无'),
+        (None, '无'),
         ('newBuilt', '新建'),
         ('extension', '扩建'),
         ('removal', '搬迁')
     )
     PROJECTSTATUS_CHOICES = (
-        ('none', '无'),
+        (None, '无'),
         ('receivedInfo', '收到资料'),
         ('reportEdit', '报告编写'),
         ('InfoComplete', '资质材料完善'),
@@ -36,13 +36,13 @@ class Project(models.Model):
     agencyMessage = models.TextField(blank=True, null=True, verbose_name="中介留言")
     workerMessage = models.TextField(blank=True, null=True, verbose_name="编写员留言")
     isMaterialEnough = models.BooleanField(blank=True, default=False, verbose_name="中介材料齐全度")
-    projectStatus = models.CharField(max_length=255, blank=True, choices=PROJECTSTATUS_CHOICES, default='none',
+    projectStatus = models.CharField(max_length=255, blank=True, choices=PROJECTSTATUS_CHOICES,
                                      null=True, verbose_name="项目状态")
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="company_project")
     projectName = models.CharField(blank=True,max_length=255, unique=True, null=True, verbose_name="项目名称")
     createTime = models.DateField(auto_now_add=True, verbose_name="创建时间")
     updateTime = models.DateField(auto_now=True, verbose_name="更新时间")
-    projectType = models.CharField(max_length=255, blank=True, choices=PROJECTTYPE_CHOICES, default='none', null=True,
+    projectType = models.CharField(max_length=255, blank=True, choices=PROJECTTYPE_CHOICES, null=True,
                                    verbose_name="项目性质")
     constructionCompanyName = models.CharField(blank=True,max_length=255, null=True, verbose_name="建设单位名称")
     nameAbbreviation = models.CharField(blank=True,max_length=255, null=True, verbose_name="名称缩写")
