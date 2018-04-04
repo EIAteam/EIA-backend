@@ -42,11 +42,19 @@ class ProjectViewSet(mixins.RetrieveModelMixin,mixins.ListModelMixin, mixins.Upd
         elif self.action == 'retrieve':
             return ProjectRetrieveSerializer
 
-class ProjectFileViewset(mixins.RetrieveModelMixin,viewsets.GenericViewSet):
+class ProjectFileViewset(mixins.DestroyModelMixin,mixins.RetrieveModelMixin,viewsets.GenericViewSet):
     permission_classes = (IsAuthenticated,)
     queryset = Project.objects.all()
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
     serializer_class = ProjectFileSereializer
+
+    def destroy(self, request, *args, **kwargs):
+        fileType=request.data['fileType']
+        instance = self.get_object()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 
 
 class ProjectFileView(APIView):
