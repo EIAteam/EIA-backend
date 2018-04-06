@@ -72,7 +72,7 @@ def replace_word(project,document):
     replace_text("信息33", str(project.north),document)
     replace_text("信息23", project.constructionScale,document)
     replace_text("信息35", str(project.soundEnvironmentStandard),document)
-    replace_text("信息24", str(project.noiseEquipment),document)
+    #replace_text("信息24", str(project.noiseEquipment),document)
     replace_text("信息18", str(project.accommodationNum+project.nonAccommodationNum),document)
     replace_text("信息10", project.address,document)
     replace_text("信息3", project.projectName,document)
@@ -235,6 +235,7 @@ def create_tables(project,document):
                         gasName = exhaustGas[t]['gasName']
                         gassheet = wb.sheets[gasName]
                         basesheet = wb.sheets["废气信息"]
+
                         gassheet.range('a13').value = exhaustGas[t]['material']
                         gassheet.range('c13').value = exhaustGas[t]['usage']
                         gassheet.range('e13').value = exhaustGas[t]['ratio']

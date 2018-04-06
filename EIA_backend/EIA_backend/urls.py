@@ -51,6 +51,7 @@ urlpatterns = [
     # drf 自带auth
     url(r'^api-token-auth/', views.obtain_auth_token),
     url(r'^api/VBA/create/(?P<projectName>[\u4e00-\u9fa5_a-zA-Z0-9_]+)/$', VBA.testVBA , name='testVBA'),
+    url(r'^api/VBA2/create/(?P<projectName>[\u4e00-\u9fa5_a-zA-Z0-9_]+)/$', VBA.testVBA2 , name='testVBA2'),
     url(r'^api/Word/create/(?P<projectName>[\u4e00-\u9fa5_a-zA-Z0-9_]+)/$', DocGenTest.createWord , name='createWord'),
     url(r'^api/updownload/(?P<projectName>[\u4e00-\u9fa5_a-zA-Z0-9_]+)/(?P<filetype>[0-9]+)/(?P<operation>[0-9]+)/$', Updownload.fileDealing , name='upDownload'),
     # jwt auth

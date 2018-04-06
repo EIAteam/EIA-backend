@@ -79,6 +79,20 @@ def testVBA(request,projectName):
     materiallist = MaterialJsonToList(project.material)
     productlist = ProductJsonToList(project.product)
     dataComputingMarco(project, equipmentlist, productlist, materiallist)
+    project = Project.objects.get(projectName=projectName)
+    return HttpResponse(project)
+def testVBA2(request,projectName):
+    project = Project.objects.get(projectName=projectName)
+    equipmentlist = EquipJsonToList(project.equipment)
+    productlist = ProductJsonToList(project.product)
+    pythoncom.CoInitialize()
+    app = xw.App(add_book=False)
+    wb = app.books.open('C:\\文件库\\Projects\\Company' + str(project.company_id) + '\\' + project.projectName + "\\" + project.projectName + ".xlsx")
+    threeSameTimeTable(project,wb,equipmentlist)#三同时表
+    fillTable(project, productlist, wb.sheets['三表'])#填写表格
+    wb.save()
+    wb.close()
+    app.quit()
     return HttpResponse()
 def dataComputingMarco(Project,equipmentlist,productlist,materiallist):
     pythoncom.CoInitialize()
@@ -101,9 +115,9 @@ def dataComputingMarco(Project,equipmentlist,productlist,materiallist):
     noiseTable(sht, Project)
     threeTable(wb.sheets['三表'],wb.sheets['数据'],Project,equipmentlist,productlist,materiallist)#三表
     SearchGas(wb,materiallist,equipmentlist,Project)#废气检索
-    sht=wb.sheets['三同时表']
-    threeSameTimeTable(sht,Project,wb,equipmentlist)#三同时表
-    fillTable(Project, productlist, wb.sheets['三表'])#填写表格
+    #sht=wb.sheets['三同时表']
+    #threeSameTimeTable(sht,Project,wb,equipmentlist)#三同时表
+    #fillTable(Project, productlist, wb.sheets['三表'])#填写表格
     exceldir = os.path.join('C:\\文件库', 'Projects', 'Company' + str(Project.company_id), Project.projectName)
     wb.save(os.path.join(exceldir,excelName))
     wb.close()
@@ -127,7 +141,7 @@ def data(sht, Project):
     sht.range('B2').value = Project.accommodationNum
     sht.range('B3').value = Project.dayWorkTime
     sht.range('B4').value = Project.yearWorkTime
-    sht.range('B5').value = Project.annualSolidWasteOutput
+    #sht.range('B5').value = Project.annualSolidWasteOutput
     sht.range('B6').value = Project.annualPowerConsumption
     sht.range('B7').value = (
                                           Project.nonAccommodationNum * 40 + Project.accommodationNum * 80) * Project.yearWorkTime / 1000
@@ -692,14 +706,9 @@ def threeTable(sht,data,Project,equipmentlist,productlist,materiallist):
     #sht.range((5, 9)).value = str5
 
     #wb.sheets['信息'].range((23, 2)).value = str1
-def threeSameTimeTable(sht,Project,wb,equipmentlist):
-
-    #app = xw.App(visible=False, add_book=False)  # visible是否打开文件
-    #app.display_alerts = False
-    #app.screen_updating = False
-    #wb=app.books.open('新建环评报告_A6.xlsm')
+def threeSameTimeTable(Project,wb,equipmentlist):
+    sht = wb.sheets['三同时表']
     str1 = ''
-
     sht.range('A1').value = '类别'
     sht.range('B1').value = '排放源'
     sht.range('C1').value = '污染物名称'
@@ -758,7 +767,7 @@ def threeSameTimeTable(sht,Project,wb,equipmentlist):
     sht.range((lr + 1, 1)).value = '噪声'
     sht.range((lr + 1, 2)).value = noil
     sht.range((lr + 1, 4)).value = '选用低噪声设备，对生产设备进行恰当隔声、减振措施'
-    sht.range((lr + 1, 5)).value = '符合《工业企业厂界环境噪声排放标准》（GB12360-2008）中的' + Project.soundEnvironmentStandard+'标准'
+    sht.range((lr + 1, 5)).value = '符合《工业企业厂界环境噪声排放标准》（GB12360-2008）中的' + str(Project.soundEnvironmentStandard) + '标准'
                                    #wb.sheets['信息'].range((35, 2)).value + '标准'
 
     wb.sheets['辅助'].delete()
