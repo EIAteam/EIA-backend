@@ -23,7 +23,7 @@ from users.views import UserViewset
 from rest_framework.routers import DefaultRouter
 from django.views.generic import TemplateView
 from company.views import CompanyViewSet, MembershipViewSet
-from projects.views import ProjectViewSet,ProjectFileView,ProjectFileViewset
+from projects.views import ProjectViewSet,ProjectFileViewset
 from utils import VBA,DocGenTest,Updownload
 from django.conf import settings
 from django.conf.urls.static import static
@@ -38,7 +38,7 @@ router.register(r'project', ProjectViewSet, base_name="project")
 
 router.register(r'membership', MembershipViewSet, base_name="membership")
 
-router.register(r'projectFiles',ProjectFileViewset, base_name="projectFiles")
+router.register(r'projectFile',ProjectFileViewset, base_name="projectFile")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -57,6 +57,5 @@ urlpatterns = [
     # jwt auth
     url(r'^login/', obtain_jwt_token),
 
-    url(r'^api/file/(?P<projectId>[0-9]+)/(?P<fileType>[\u4e00-\u9fa5_a-zA-Z0-9_]+)/(?P<fileId>[0-9]+)/$', ProjectFileView.as_view()),
 
 ]+static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

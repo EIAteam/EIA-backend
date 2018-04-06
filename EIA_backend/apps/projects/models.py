@@ -2,10 +2,13 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from company.models import Company
 from django.core.files.storage import FileSystemStorage
+
 # 获取自定义User
 User = get_user_model()
 
 fileStorage = FileSystemStorage()
+
+
 # Create your models here.
 
 class Project(models.Model):
@@ -136,97 +139,26 @@ class Project(models.Model):
         return self.projectName
 
 
-class BusinessLicenseFile(models.Model):
-    """
-    营业执照复印件
-    """
+
+class ProjectFile(models.Model):
+    FILETYPE_CHOICES = (
+        ('businessLicenseFile', '营业执照复印件'),
+        ('idCardFile', '法人身份证复印件'),
+        ('workshopLeaseContractFile', '厂房租赁合同复印件'),
+        ('siteUseFile', '场地使用证明复印件'),
+        ('environmentalProtectionCertificate', '环保证'),
+        ('workshopEastImg', '厂址四至图-东'),
+        ('workshopSouthImg', '厂址四至图-南'),
+        ('workshopWestImg', '厂址四至图-西'),
+        ('workshopNorthImg', '厂址四至图-北'),
+    )
+
     def uploadFilePath(instance, filename):
-        # file will be uploaded to MEDIA_ROOT/project_<id>/<filename>
-        return 'project_{0}\\营业执照复印件\\{1}'.format(instance.project_id, filename)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="businessLicenseFile")
+        # file will be uploaded to MEDIA_ROOT/project_<id>/<fileType>/<filename>
+        return 'project_{0}\\{1}\\{2}'.format(instance.project_id, instance.get_fileType_display(), filename)
+
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="projectFile")
     name = models.CharField(blank=True, max_length=255, null=True, verbose_name="文件名")
-    url = models.FileField(upload_to=uploadFilePath,storage=fileStorage, null=True, blank=True, verbose_name="营业执照复印件")
-
-
-class IdCardFile(models.Model):
-    """
-    法人身份证
-    """
-    def uploadFilePath(instance, filename):
-        # file will be uploaded to MEDIA_ROOT/project_<id>/<filename>
-        return 'project_{0}\\法人身份证复印件\\{1}'.format(instance.project_id, filename)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="idCardFile")
-    name = models.CharField(blank=True, max_length=255, null=True, verbose_name="文件")
-    url = models.FileField(upload_to=uploadFilePath,storage=fileStorage, null=True, blank=True, verbose_name="法人身份证复印件")
-
-
-class WorkshopLeaseContractFile(models.Model):
-    """
-    法人身份证复
-    """
-    def uploadFilePath(instance, filename):
-        # file will be uploaded to MEDIA_ROOT/project_<id>/<filename>
-        return 'project_{0}\\厂房租赁合同复印件\\{1}'.format(instance.project_id, filename)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="workshopLeaseContractFile")
-    name = models.CharField(blank=True, max_length=255, null=True, verbose_name="文件名")
-    url = models.FileField(upload_to=uploadFilePath,storage=fileStorage, null=True, blank=True,verbose_name="厂房租赁合同复印件")
-
-
-class SiteUseFile(models.Model):
-    """
-    场地使用证明复印
-    """
-    def uploadFilePath(instance, filename):
-        # file will be uploaded to MEDIA_ROOT/project_<id>/<filename>
-        return 'project_{0}\\场地使用证明复印件\\{1}'.format(instance.project_id, filename)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="siteUseFile")
-    name = models.CharField(blank=True, max_length=255, null=True, verbose_name="文件名")
-    url = models.FileField(upload_to=uploadFilePath,storage=fileStorage, null=True, blank=True, verbose_name="场地使用证明复印件")
-
-
-class WorkshopEastImg(models.Model):
-    """
-    厂址四至图-东
-    """
-    def uploadFilePath(instance, filename):
-        # file will be uploaded to MEDIA_ROOT/project_<id>/<filename>
-        return 'project_{0}\\厂址四至图-东\\{1}'.format(instance.project_id, filename)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="workshopEastImg")
-    name = models.CharField(blank=True, max_length=255, null=True, verbose_name="文件名")
-    url = models.FileField(upload_to=uploadFilePath,storage=fileStorage, null=True, blank=True, verbose_name="厂址四至图-东")
-
-
-class WorkshopSouthImg(models.Model):
-    """
-    厂址四至图-南
-    """
-    def uploadFilePath(instance, filename):
-        # file will be uploaded to MEDIA_ROOT/project_<id>/<filename>
-        return 'project_{0}\\厂址四至图-南\\{1}'.format(instance.project_id, filename)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="workshopSouthImg")
-    name = models.CharField(blank=True, max_length=255, null=True, verbose_name="文件名")
-    url = models.FileField(upload_to=uploadFilePath,storage=fileStorage, null=True, blank=True, verbose_name="厂址四至图-南")
-
-
-class WorkshopWestImg(models.Model):
-    """
-    厂址四至图-西
-    """
-    def uploadFilePath(instance, filename):
-        # file will be uploaded to MEDIA_ROOT/project_<id>/<filename>
-        return 'project_{0}\\厂址四至图-西\\{1}'.format(instance.project_id, filename)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="workshopWestImg")
-    name = models.CharField(blank=True, max_length=255, null=True, verbose_name="文件名")
-    url = models.FileField(upload_to=uploadFilePath,storage=fileStorage, null=True, blank=True, verbose_name="厂址四至图-西")
-
-
-class WorkshopNorthImg(models.Model):
-    """
-    厂址四至图-北
-    """
-    def uploadFilePath(instance, filename):
-        # file will be uploaded to MEDIA_ROOT/project_<id>/<filename>
-        return 'project_{0}\\厂址四至图-北\\{1}'.format(instance.project_id, filename)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="workshopNorthImg")
-    name = models.CharField(blank=True, max_length=255, null=True, verbose_name="文件名")
-    url = models.FileField(upload_to=uploadFilePath,storage=fileStorage, null=True, blank=True, verbose_name="厂址四至图-北")
+    fileType = models.CharField(max_length=255, blank=True, choices=FILETYPE_CHOICES, null=True, verbose_name="文件类型")
+    filePath = models.FileField(upload_to=uploadFilePath, storage=fileStorage, null=True, blank=True,
+                                verbose_name="文件位置")
