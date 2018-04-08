@@ -59,8 +59,6 @@ class ProjectFileViewset(mixins.CreateModelMixin,mixins.DestroyModelMixin,mixins
         my_file = request.FILES['file']
         projectFile=ProjectFile(project=project)
         projectFile.fileType=request.data['fileType']
-        print(projectFile.fileType)
-        print(projectFile.get_fileType_display())
         filePath=projectFile.uploadFilePath(my_file)
         projectFile.filePath=projectFile.filePath.storage.save(filePath,my_file)
         projectFile.name=projectFile.filePath.name.split('/')[-1]

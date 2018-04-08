@@ -11,10 +11,6 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     用户注册
     """
 
-    class Meta:
-        model = User
-        fields = ('username', 'password', 'name', 'email')
-
     username = serializers.CharField(label="用户名", help_text="用户名", required=True, allow_blank=False,
                                      validators=[
                                          UniqueValidator(queryset=User.objects.all(), message="用户已经存在")
@@ -30,6 +26,12 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
+    class Meta:
+        model = User
+        fields = ('username', 'password', 'name', 'email','telephone')
+
+
+
 
 class UserDetailSerializer(serializers.ModelSerializer):
     """
@@ -38,4 +40,13 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'username')
+        fields = ('id', 'username','name','email','telephone')
+
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    """
+    用户信息修改
+    """
+    class Meta:
+        model = User
+        fields = ('name','email','telephone')

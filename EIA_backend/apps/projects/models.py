@@ -151,6 +151,9 @@ class ProjectFile(models.Model):
         ('workshopSouthImg', '厂址四至图-南'),
         ('workshopWestImg', '厂址四至图-西'),
         ('workshopNorthImg', '厂址四至图-北'),
+        ('processFlowChart','工艺流程图'),
+        ('planeLayoutChart','平面布置图'),
+        ('satelliteInformationChart','卫星信息图')
     )
 
     def uploadFilePath(instance, filename):

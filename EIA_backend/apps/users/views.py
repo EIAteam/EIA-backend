@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import mixins
 from rest_framework import viewsets
-from .serializers import UserRegisterSerializer, UserDetailSerializer
+from .serializers import UserRegisterSerializer, UserDetailSerializer,UserUpdateSerializer
 from rest_framework import permissions
 from rest_framework import authentication
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
@@ -10,7 +10,7 @@ from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 User = get_user_model()
 
 
-class UserViewset(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+class UserViewset(mixins.UpdateModelMixin,mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     """
     用户注册与获取用户信息
     """
@@ -26,16 +26,16 @@ class UserViewset(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             return UserDetailSerializer
         elif self.action == "create":
             return UserRegisterSerializer
-
+        elif self.action=='update' or self.action=='partial_update':
+            return  UserUpdateSerializer
         return UserDetailSerializer
 
     # 动态配置注册与获取信息的permission（一个需要登陆，一个不需要）
     def get_permissions(self):
-        if self.action == "retrieve":
+        if self.action == "retrieve" or self.action=='update' or self.action=='partial_update':
             return [permissions.IsAuthenticated()]
         elif self.action == "create":
             return []
-
         return []
 
     # 重载，如此retrieve与delete都是针对当前登陆的用户,/user/:id参数可以随意设定不影响
