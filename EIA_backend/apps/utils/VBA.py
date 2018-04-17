@@ -7,6 +7,7 @@ import json
 from django.http import HttpResponse
 from django.shortcuts import render,redirect
 from projects.models import Project
+from projects.models import ProjectFile
 class Product:
     def __init__(self, productsName,num,unit,remark):
         self.productsName=productsName
@@ -42,6 +43,8 @@ def MaterialJsonToList(data):
             materialName=data[i]['materialName']
             num=data[i]['num']
             unit=data[i]['unit']
+            if (data[i]['remark'] == ""):
+                data[i]['remark'] = " "
             remark=data[i]['remark']
             state=data[i]['state']
             ratio=data[i]['ratio']
@@ -55,6 +58,8 @@ def ProductJsonToList(data):
             productName=data[i]['productName']
             num=data[i]['num']
             unit=data[i]['unit']
+            if(data[i]['remark'] == ""):
+                data[i]['remark'] = " "
             remark=data[i]['remark']
             product=Product(productName,num,unit,remark)
             productlist.append(product)
@@ -66,35 +71,46 @@ def EquipJsonToList(data):
         equipName = data[i]['equipmentName']
         num = data[i]['num']
         unit = data[i]['unit']
+        if (data[i]['remark'] == ""):
+            data[i]['remark'] = " "
         remark = data[i]['remark']
         equipment = Equipment(equipName, num, unit, remark)
         equiplist.append(equipment)
     return equiplist
-def testVBA(request,projectName):
-    project = Project.objects.get(projectName=projectName)
-    exceldir = os.path.join('C:\\文件库', 'Projects', 'Company' + str(project.company_id), projectName)
+def recompute(request):
+    newjson = json.loads(request.body)
+    project = Project.objects.get(projectName=newjson['projectName'])
+    project.exhaustGasMaterials = newjson["exhaustGasMaterials"]
+    project.exhaustGas = newjson["exhaustGas"]
+    project.save()
+    cal_discharge_with_organize(project)
+    return HttpResponse("success")
+def testVBA(request):
+    newjson = json.loads(request.body)
+    project = Project.objects.get(projectName=newjson['projectName'])
+    exceldir = os.path.join('./media/project_'+ str(newjson['id']) +'/废气分析表/')
     if not os.path.isdir(exceldir):
         os.makedirs(exceldir)
     equipmentlist = EquipJsonToList(project.equipment)
     materiallist = MaterialJsonToList(project.material)
     productlist = ProductJsonToList(project.product)
-    dataComputingMarco(project, equipmentlist, productlist, materiallist)
-    project = Project.objects.get(projectName=projectName)
-    return HttpResponse(project)
-def testVBA2(request,projectName):
-    project = Project.objects.get(projectName=projectName)
+    dataComputingMarco(project, equipmentlist, productlist, materiallist,newjson['id'])
+    project = Project.objects.get(projectName=newjson['projectName'])
+    return HttpResponse("success")
+def testVBA2(project,id):
     equipmentlist = EquipJsonToList(project.equipment)
     productlist = ProductJsonToList(project.product)
     pythoncom.CoInitialize()
     app = xw.App(add_book=False)
-    wb = app.books.open('C:\\文件库\\Projects\\Company' + str(project.company_id) + '\\' + project.projectName + "\\" + project.projectName + ".xlsx")
+    file = ProjectFile.objects.get(project_id=id, fileType='exhaustGasInfoFile')
+    wb = app.books.open('./media/project_' + str(file.project_id) + '/废气分析表/'+file.name)
     threeSameTimeTable(project,wb,equipmentlist)#三同时表
-    fillTable(project, productlist, wb.sheets['三表'])#填写表格
+    fillTable(project, productlist, wb.sheets['三表'],id)#填写表格
     wb.save()
     wb.close()
     app.quit()
-    return HttpResponse()
-def dataComputingMarco(Project,equipmentlist,productlist,materiallist):
+    return HttpResponse("success")
+def dataComputingMarco(Project,equipmentlist,productlist,materiallist,id):
     pythoncom.CoInitialize()
     app=xw.App(add_book=False)
     # 打开xlsm工作簿
@@ -115,13 +131,14 @@ def dataComputingMarco(Project,equipmentlist,productlist,materiallist):
     noiseTable(sht, Project)
     threeTable(wb.sheets['三表'],wb.sheets['数据'],Project,equipmentlist,productlist,materiallist)#三表
     SearchGas(wb,materiallist,equipmentlist,Project)#废气检索
-    #sht=wb.sheets['三同时表']
-    #threeSameTimeTable(sht,Project,wb,equipmentlist)#三同时表
-    #fillTable(Project, productlist, wb.sheets['三表'])#填写表格
-    exceldir = os.path.join('C:\\文件库', 'Projects', 'Company' + str(Project.company_id), Project.projectName)
+    exceldir = os.path.join('./media/project_' + str(id) + '/废气分析表/')
     wb.save(os.path.join(exceldir,excelName))
     wb.close()
     app.quit()
+    temp = ProjectFile.objects.filter(project_id = id , fileType = 'exhaustGasInfoFile')
+    temp.delete()
+    file = ProjectFile.objects.create(name = excelName , project_id = id , filePath = 'project_' + str(id) + '/废气分析表/' + excelName , fileType = 'exhaustGasInfoFile')
+    file.save()
 def data(sht, Project):
     sht.range('A1').value = "职工不住宿人数(人)"
     sht.range('A2').value = "职工住宿人数(人)"
@@ -840,144 +857,199 @@ def SearchGas(wb2,materialList,equipmentList,Project):
     #lr4=sht.range('A1').expand().last_cell.row#待改
     if(nogasflag == True):
         return 0
+    gasset = set()
     for i in range(8,lr4+1,7):
-        print("i is now:"+str(i))
-        print(str(lr4+1))
-        sht2=wb2.sheets.add(sht.range((i,4)).value)
-        gaslist.append(sht.range((i,4)).value)
-        sht2.range('a1').value='废气污染源核算'
-        sht2.range('a2').value=sht.range('d'+str(i)).value
-        sht2.range('b2').value = sht.range('c' + str(i)).value
-        #TODO MERGE 'A3:F3'
-        sht2.range('a3').value='基本数据'
-        sht2.range('a4').value='排气筒高度'
-        sht2.range('b4').value = 'm'
-        sht2.range('a5').value = '风量'
-        sht2.range('b5').value = 'm3/h'
-        #TODO B5 m3/h
-        #TODO MERGE A6:F6
-        sht2.range('a6').value='工作时长'
-        sht2.range('a7').value = '年运行天数'
-        sht2.range('c7').value = Project.yearWorkTime
-        sht2.range('b7').value='d'
-        sht2.range('a8').value='日运行时数'
-        sht2.range('c8').value=Project.dayWorkTime
-        sht2.range('b8').value='h'
-        #TODO MERGE A9:F9
-        sht2.range('a9').value='效率'
-        sht2.range('a10').value = '收集效率'
-        sht2.range('a11').value = '去除/处理效率'
-        sht2.range('c10').value = sht.range('i'+str(i)).value
-        sht2.range('c11').value = sht.range('j' + str(i)).value
-        sht2.range('b10').value = '污染物进入集气罩的百分比'
-        sht2.range('b11').value = '污染物进入集气罩后经处理设施处理后截留下来的量、速率和浓度'
-        sht2.range('a12').value='原材料'
-        sht2.range('b12').value = '单位'
-        sht2.range('c12').value = '用量'
-        sht2.range('e12').value = '系数'
-        sht2.range('a13').value=sht.range('a'+str(i)).value
-        sht2.range('b13').value = sht.range('n' + str(i)).value
-        sht2.range('c13').value = sht.range('o' + str(i)).value
-        sht2.range('e13').value = sht.range('g' + str(i)).value
-        sht2.range('c4').value = Project.gasCylinderHeight
-        sht2.range('c5').value = Project.airQuantity
-        #有组织排放
-        # TODO: 设置格式
-        sht2.range('h1').value='有组织排放'
-        sht2.range('h2').value='污染物产生量'
-        #TODO: MERGE i2:k2
-        sht2.range('i2').value = '进入集气罩的情况'
-        #TODO: MERGE l2:n2
-        sht2.range('l2').value = '排放情况'
-        #TODO: MERGE o2:p2
-        sht2.range('o2').value = '无组织排放情况'
-
-        sht2.range('h3').value='t/a'
-        sht2.range('i3').value = 't/a'
-        sht2.range('j3').value = 'kg/h'
-        sht2.range('k3').value = 'mg/m3'
-        #TODO: 字符上标
-        sht2.range('l3').value='t/a'
-        sht2.range('m3').value = 'kg/h'
-        sht2.range('n3').value = 'mg/m3'
-        # TODO: 字符上标
-        sht2.range('o3').value='t/a'
-        sht2.range('p3').value='kg/h'
-
-        sht2.range('h4').value=str(float(sht2.range('c13').value*float(sht2.range('e13').value)))#待改
-        sht2.range('i4').value = str(float(sht2.range('h4').value)*float(sht2.range('c10').value))
-        sht2.range('j4').value=str(float(sht2.range('i4').value)*1000/float(sht2.range('c7').value)/float(sht2.range('c8').value))
-        sht2.range('k4').value=str(float(sht2.range('j4').value)*1000*1000/float(sht2.range('c5').value))
-        sht2.range('k4').value=str(float(sht2.range('c4').value)*1000*1000/float(sht2.range('c5').value))
-        sht2.range('l4').value=str(float(sht2.range('i4').value)*(1-float(sht2.range('c11').value)))
-        sht2.range('m4').value = str(float(sht2.range('j4').value) * (1 - float(sht2.range('c11').value)))
-        sht2.range('n4').value = str(float(sht2.range('k4').value) * (1 - float(sht2.range('c11').value)))
-        sht2.range('o4').value = str(float(sht2.range('h4').value)-float(sht2.range('i4').value))
-        sht2.range('p4').value = str(float(sht2.range('o4').value) * 1000 / float(sht2.range('c7').value) / float(sht2.range('c8').value))
-
-        #无组织排放
-        # TODO: 设置格式
-        sht2.range('h6').value = '无组织排放1'
-        sht2.range('h7').value='污染物产生量'
-        #TODO: MERGE i7:j7
-        sht2.range('i7').value = '进入处理设施情况'
-        #TODO: MERGE k7:l7
-        sht2.range('k7').value = '削减量'
-        #TODO: MERGE m7:n7
-        sht2.range('m7').value = '无组织排放总量'
-
-        sht2.range('h8').value='t/a'
-        sht2.range('i8').value = 't/a'
-        sht2.range('j8').value = 'kg/h'
-        sht2.range('k8').value = 't/a'
-        sht2.range('l8').value = 'kg/h'
-        sht2.range('m8').value='t/a'
-        sht2.range('n8').value = 'kg/h'
-
-        sht2.range('h9').value=str(float(sht2.range('c13').value*float(sht2.range('e13').value)))#待改
-        sht2.range('i9').value = str(float(sht2.range('h9').value)*float(sht2.range('c10').value))
-        sht2.range('j9').value=str(float(sht2.range('i9').value)*1000/float(sht2.range('c7').value)/float(sht2.range('c8').value))
-        sht2.range('k9').value=str(float(sht2.range('j9').value)*float(sht2.range('c11').value))
-        sht2.range('l9').value=str(float(sht2.range('k9').value)*1000/float(sht2.range('c7').value)/float(sht2.range('c8').value))
-        sht2.range('m9').value = str(float(sht2.range('h9').value)-float(sht2.range('k9').value))
-        sht2.range('n9').value = str(float(sht2.range('m9').value) * 1000 / float(sht2.range('c7').value) / float(sht2.range('c8').value))
-
-        # 无组织排放2
-        sht2.range('h11').value = '无组织排放2'
-        sht2.range('h12').value = '原材料用量'
-        sht2.range('i12').value = '污染物产生系数'
-        sht2.range('j12').value ='最大产生速率'
-        sht2.range('k12').value = '产生量'
-        sht2.range('l12').value = '排放量'
-
-        sht2.range('h13').value = 'kg/a'
-        sht2.range('i13').value = 'g/kg'
-        sht2.range('j13').value = 'kg/h'
-        sht2.range('k13').value = 'kg/a'
-        sht2.range('l13').value = 'kg/a'
-
-        sht2.range('h14').value=str(float(sht2.range('c13').value)*1000)
-        sht2.range('i14').value = str(float(sht2.range('e13').value))
-        sht2.range('k14').value=str(float(sht2.range('h14').value)*float(sht2.range('i14').value)/1000)
-        sht2.range('l14').value=str(float(sht2.range('k14').value))
-        sht2.range('j14').value=str(float(sht2.range('k14').value)/float(sht2.range('c7').value)/float(sht2.range('c8').value))
+        if str(sht.range((i,4)).value) in gasset:
+            sht2 = wb2.sheets[str(sht.range((i,4)).value)]
+            rng = sht2.range('A1').expand('table')
+            nrows = rng.rows.count
+            sht2.range((nrows + 1, 1)).value = sht.range('a' + str(i)).value
+            sht2.range((nrows + 1, 2)).value = sht.range('n' + str(i)).value
+            sht2.range((nrows + 1, 3)).value = sht.range('o' + str(i)).value
+            sht2.range((nrows + 1, 5)).value = sht.range('g' + str(i)).value
+        else:
+            gasset.add(str(sht.range((i,4)).value))
+            sht2 = wb2.sheets.add(sht.range((i, 4)).value)
+            gaslist.append(sht.range((i, 4)).value)
+            sht2.range('a1').value = '废气污染源核算'
+            sht2.range('a2').value = sht.range('d' + str(i)).value
+            sht2.range('b2').value = sht.range('c' + str(i)).value
+            # TODO MERGE 'A3:F3'
+            sht2.range('a3').value = '基本数据'
+            sht2.range('a4').value = '排气筒高度'
+            sht2.range('b4').value = 'm'
+            sht2.range('a5').value = '风量'
+            sht2.range('b5').value = 'm3/h'
+            # TODO B5 m3/h
+            # TODO MERGE A6:F6
+            sht2.range('a6').value = '工作时长'
+            sht2.range('a7').value = '年运行天数'
+            sht2.range('c7').value = Project.yearWorkTime
+            sht2.range('b7').value = 'd'
+            sht2.range('a8').value = '日运行时数'
+            sht2.range('c8').value = Project.dayWorkTime
+            sht2.range('b8').value = 'h'
+            # TODO MERGE A9:F9
+            sht2.range('a9').value = '效率'
+            sht2.range('a10').value = '收集效率'
+            sht2.range('a11').value = '去除/处理效率'
+            sht2.range('c10').value = sht.range('i' + str(i)).value
+            sht2.range('c11').value = sht.range('j' + str(i)).value
+            sht2.range('b10').value = '污染物进入集气罩的百分比'
+            sht2.range('b11').value = '污染物进入集气罩后经处理设施处理后截留下来的量、速率和浓度'
+            sht2.range('a12').value = '原材料'
+            sht2.range('b12').value = '单位'
+            sht2.range('c12').value = '用量'
+            sht2.range('e12').value = '系数'
+            sht2.range('a13').value = sht.range('a' + str(i)).value
+            sht2.range('b13').value = sht.range('n' + str(i)).value
+            sht2.range('c13').value = sht.range('o' + str(i)).value
+            sht2.range('e13').value = sht.range('g' + str(i)).value
+            sht2.range('c4').value = Project.gasCylinderHeight
+            sht2.range('c5').value = Project.airQuantity
+            # 有组织排放
+            # TODO: 设置格式
+            sht2.range('h1').value = '有组织排放'
+            sht2.range('h2').value = '污染物产生量'
+            # TODO: MERGE i2:k2
+            sht2.range('i2').value = '进入集气罩的情况'
+            # TODO: MERGE l2:n2
+            sht2.range('l2').value = '排放情况'
+            # TODO: MERGE o2:p2
+            sht2.range('o2').value = '无组织排放情况'
+            sht2.range('h3').value = 't/a'
+            sht2.range('i3').value = 't/a'
+            sht2.range('j3').value = 'kg/h'
+            sht2.range('k3').value = 'mg/m3'
+            # TODO: 字符上标
+            sht2.range('l3').value = 't/a'
+            sht2.range('m3').value = 'kg/h'
+            sht2.range('n3').value = 'mg/m3'
+            # TODO: 字符上标
+            sht2.range('o3').value = 't/a'
+            sht2.range('p3').value = 'kg/h'
+            if(sht2.range('e13').value == "焊条：2~5g/kg\n焊丝：7kg/t"):
+                if(sht2.range('a13').value == "焊条"):
+                    sht2.range('e13').value = 0.0035
+                else:
+                    sht2.range('e13').value = 0.007
+            if((sht2.range('e13').value) != "自填"):
+                sht2.range('h4').value = str(float(sht2.range('c13').value * float(sht2.range('e13').value)))  # 待改
+                sht2.range('i4').value = str(float(sht2.range('h4').value) * float(sht2.range('c10').value))
+                sht2.range('j4').value = str(float(sht2.range('i4').value) * 1000 / float(sht2.range('c7').value) / float(sht2.range('c8').value))
+                sht2.range('k4').value = str(float(sht2.range('j4').value) * 1000 * 1000 / float(sht2.range('c5').value))
+                sht2.range('k4').value = str(float(sht2.range('c4').value) * 1000 * 1000 / float(sht2.range('c5').value))
+                sht2.range('l4').value = str(float(sht2.range('i4').value) * (1 - float(sht2.range('c11').value)))
+                sht2.range('m4').value = str(float(sht2.range('j4').value) * (1 - float(sht2.range('c11').value)))
+                sht2.range('n4').value = str(float(sht2.range('k4').value) * (1 - float(sht2.range('c11').value)))
+                sht2.range('o4').value = str(float(sht2.range('h4').value) - float(sht2.range('i4').value))
+                sht2.range('p4').value = str(float(sht2.range('o4').value) * 1000 / float(sht2.range('c7').value) / float(sht2.range('c8').value))
+            else:
+                sht2.range('h4').value = "自填"
+                sht2.range('i4').value = "自填"
+                sht2.range('j4').value = "自填"
+                sht2.range('k4').value = "自填"
+                sht2.range('k4').value = "自填"
+                sht2.range('l4').value = "自填"
+                sht2.range('m4').value = "自填"
+                sht2.range('n4').value = "自填"
+                sht2.range('o4').value = "自填"
+                sht2.range('p4').value = "自填"
+            # 无组织排放
+            # TODO: 设置格式
+            sht2.range('h6').value = '无组织排放1'
+            sht2.range('h7').value = '污染物产生量'
+            # TODO: MERGE i7:j7
+            sht2.range('i7').value = '进入处理设施情况'
+            # TODO: MERGE k7:l7
+            sht2.range('k7').value = '削减量'
+            # TODO: MERGE m7:n7
+            sht2.range('m7').value = '无组织排放总量'
+            sht2.range('h8').value = 't/a'
+            sht2.range('i8').value = 't/a'
+            sht2.range('j8').value = 'kg/h'
+            sht2.range('k8').value = 't/a'
+            sht2.range('l8').value = 'kg/h'
+            sht2.range('m8').value = 't/a'
+            sht2.range('n8').value = 'kg/h'
+            if ((sht2.range('e13').value) != "自填"):
+                sht2.range('h9').value = str(float(sht2.range('c13').value * float(sht2.range('e13').value)))  # 待改
+                sht2.range('i9').value = str(float(sht2.range('h9').value) * float(sht2.range('c10').value))
+                sht2.range('j9').value = str(float(sht2.range('i9').value) * 1000 / float(sht2.range('c7').value) / float(sht2.range('c8').value))
+                sht2.range('k9').value = str(float(sht2.range('j9').value) * float(sht2.range('c11').value))
+                sht2.range('l9').value = str(float(sht2.range('k9').value) * 1000 / float(sht2.range('c7').value) / float(sht2.range('c8').value))
+                sht2.range('m9').value = str(float(sht2.range('h9').value) - float(sht2.range('k9').value))
+                sht2.range('n9').value = str(float(sht2.range('m9').value) * 1000 / float(sht2.range('c7').value) / float(sht2.range('c8').value))
+            # 无组织排放2
+            else:
+                sht2.range('h9').value = "自填"
+                sht2.range('i9').value = "自填"
+                sht2.range('j9').value = "自填"
+                sht2.range('k9').value = "自填"
+                sht2.range('l9').value = "自填"
+                sht2.range('m9').value = "自填"
+                sht2.range('n9').value = "自填"
+            sht2.range('h11').value = '无组织排放2'
+            sht2.range('h12').value = '原材料用量'
+            sht2.range('i12').value = '污染物产生系数'
+            sht2.range('j12').value = '最大产生速率'
+            sht2.range('k12').value = '产生量'
+            sht2.range('l12').value = '排放量'
+            sht2.range('h13').value = 'kg/a'
+            sht2.range('i13').value = 'g/kg'
+            sht2.range('j13').value = 'kg/h'
+            sht2.range('k13').value = 'kg/a'
+            sht2.range('l13').value = 'kg/a'
+            sht2.range('h14').value = str(float(sht2.range('c13').value) * 1000)
+            if ((sht2.range('e13').value) != "自填"):
+                sht2.range('i14').value = str(float(sht2.range('e13').value))
+                sht2.range('k14').value = str(float(sht2.range('h14').value) * float(sht2.range('i14').value) / 1000)
+                sht2.range('l14').value = str(float(sht2.range('k14').value))
+                sht2.range('j14').value = str(float(sht2.range('k14').value) / float(sht2.range('c7').value) / float(sht2.range('c8').value))
+            else:
+                sht2.range('i14').value = "自填"
+                sht2.range('k14').value = "自填"
+                sht2.range('l14').value = "自填"
+                sht2.range('j14').value = "自填"
     gasjson = []
+    gasmaterialjson = []
     for element in gaslist:
         item = {}
-        item["gasName"] = element
-        item["remark"] = ""
-        item["material"] = wb2.sheets[str(element)].range("A13").value
+        item["materialname"] = wb2.sheets[str(element)].range("A13").value
         item["usage"] = wb2.sheets[str(element)].range("C13").value
         item["ratio"] = wb2.sheets[str(element)].range("E13").value
+        item["collectionEfficiency"] = wb2.sheets[str(element)].range("C10").value
+        item["processingEfficiency"] = wb2.sheets[str(element)].range("C11").value
+        item['airQuantity'] = Project.airQuantity
+        item['gasCylinderHeight'] = Project.gasCylinderHeight
+        item["gasName"] = element
+        if(element == "焊接烟尘"):
+            item["remark"] = '无组织排放2'
+        elif(item["collectionEfficiency"] == 0):
+            item["remark"] = '无组织排放1'
+        else:
+            item["remark"] = '有组织排放'
         gasjson.append(item)
-    print(str(gasjson))
+        sht2 = wb2.sheets[element]
+        rng = sht2.range('A1').expand('table')
+        nrows = rng.rows.count
+        for i in range(12, nrows):
+            item = {}
+            item["materialName"] = sht2.range((i + 1, 1)).value
+            item["gasName"] = element
+            item["unit"] = sht2.range((i + 1, 2)).value
+            item["usage"] = sht2.range((i + 1, 3)).value
+            item["ratio"] = sht2.range((i + 1, 5)).value
+            gasmaterialjson.append(item)
     newjson = str(gasjson).replace("'",'"')
-    print(newjson)
     Project.exhaustGas = newjson
+    newjson = str(gasmaterialjson).replace("'", '"')
+    Project.exhaustGasMaterials = newjson
     Project.save()
+    cal_discharge_with_organize(Project)
     wb.close()
     app.quit()
-def fillTable(Project,productlist,threetable):
+def fillTable(Project,productlist,threetable,id):
     #填写表格1
     wb=xw.books.open("C:\\文件库\\模板\\0-基本资料\\基础信息表1.xlsx")
     sht=wb.sheets[0]
@@ -1019,10 +1091,14 @@ def fillTable(Project,productlist,threetable):
     sht.range('m15').value=Project.EAcompanyCertificatenumber
     sht.range('m16').value =Project.EAcompanyTelephone
     sht.range('j17').value = Project.EAcompanyAddress
-    exceldir = os.path.join('C:\\文件库', 'Projects', 'Company' + str(Project.company_id), Project.projectName)
-    wb.save(os.path.join(exceldir,Project.nameAbbreviation+'-建设项目环评审批基础信息表V1013版.xlsx'))
+    exceldir = os.path.join('./media/project_' + str(id) + '/基础信息表/')
+    if not os.path.isdir(exceldir):
+        os.makedirs(exceldir)
+    excelName = Project.nameAbbreviation+'-建设项目环评审批基础信息表V1013版.xlsx'
+    wb.save(os.path.join(exceldir,excelName))
     wb.close()
-
+    file = ProjectFile.objects.create(name=excelName, project_id=id, filePath='project_' + str(id) + '/废气分析表/' + excelName,fileType='basicInfoFile')
+    file.save()
     #填写表格2
     wb=xw.books.open("C:\\文件库\\模板\\0-基本资料\\基础信息表2.xlsx")
     shtnew=wb.sheets[0]
@@ -1073,8 +1149,99 @@ def fillTable(Project,productlist,threetable):
     shtnew.range('j38').value =Project.managementSpace
     shtnew.range('d39').value =Project.businessRange
     shtnew.range('d43').value =threetable.range('i2').value
-    exceldir = os.path.join('C:\\文件库', 'Projects', 'Company' + str(Project.company_id), Project.projectName)
-    wb.save(os.path.join(exceldir,Project.nameAbbreviation+'-建设项目环评审批基础信息表（导入）V0731.xlsx'))
+    exceldir = os.path.join('./media/project_' + str(id) + '/基础信息表/')
+    excelName = Project.nameAbbreviation+'-建设项目环评审批基础信息表（导入）V0731.xlsx'
+    wb.save(os.path.join(exceldir, excelName))
     wb.close()
+    file = ProjectFile.objects.create(name=excelName, project_id=id, filePath='project_' + str(id) + '/废气分析表/' + excelName,fileType='basicInfoFile')
+    file.save()
+def cal_discharge_with_organize(project):
+    material_text=json.loads(project.exhaustGasMaterials)
+    gas_text=json.loads(project.exhaustGas)
+    print(gas_text)
+    print(material_text)
+    for j in range(len(gas_text)):
+        gas_text[j]['year_discharge_wo']=0
+        gas_text[j]['hour_discharge_wo']=0
+        gas_text[j]['concentration_wo'] =0
+    for i in range(len(material_text)):
+        for j in range(len(gas_text)):
+            if gas_text[j]['gasName']==material_text[i]['gasName']:
+                collectionEfficiency = gas_text[j]['collectionEfficiency']
+                processingEfficiency = gas_text[j]['processingEfficiency']
+                if (material_text[i]['ratio'] == "自填"):
+                    gas_text[j]['year_discharge_wo'] = "自填"
+                else:
+                    gas_text[j]['year_discharge_wo'] += float(material_text[i]['usage']) * float(material_text[i]['ratio']) * float(collectionEfficiency) * (1 - float(processingEfficiency))
+                break
+    for j in range(len(gas_text)):
+        if (gas_text[j]['year_discharge_wo'] == "自填"):
+            gas_text[j]['concentration_wo'] = "自填"
+            gas_text[j]['hour_discharge_wo'] = "自填"
+            break
+        else:
+            gas_text[j]['hour_discharge_wo'] = (float(gas_text[j]['year_discharge_wo']) / float(project.yearWorkTime) / float(project.dayWorkTime))
+            gas_text[j]['concentration_wo'] = (float(gas_text[j]['hour_discharge_wo']) * 1000000 / float(project.airQuantity))
+            gas_text[j]['concentration_wo'] = float("%.4f" % gas_text[j]['concentration_wo'])
+            gas_text[j]['hour_discharge_wo'] = float("%.8f" % gas_text[j]['hour_discharge_wo'])
+            gas_text[j]['year_discharge_wo'] = float("%.8f" % gas_text[j]['year_discharge_wo'])
+    project.exhaustGas = str(gas_text).replace("'", '"')
+    project.save()
+    return cal_discharge_without_organize1(project)
+def cal_discharge_without_organize1(project):
+    material_text=json.loads(project.exhaustGasMaterials)
+    gas_text=json.loads(project.exhaustGas)
+    for j in range(len(gas_text)):
+        gas_text[j]['year_discharge_woo1']=0
+        gas_text[j]['hour_discharge_woo1']=0
+    for i in range(len(material_text)):
+        for j in range(len(gas_text)):
+            if gas_text[j]['gasName']==material_text[i]['gasName']:
+                collectionEfficiency = gas_text[j]['collectionEfficiency']
+                processingEfficiency = gas_text[j]['processingEfficiency']
+                if (material_text[i]['ratio'] == "自填"):
+                    gas_text[j]['year_discharge_woo1'] = "自填"
+                else:
+                    gas_text[j]['year_discharge_woo1']+= float(material_text[i]['usage']) * float(material_text[i]['ratio']) * float(collectionEfficiency) * (1 - float(processingEfficiency))
+                break
+    print(gas_text)
+    for j in range(len(gas_text)):
+        if (gas_text[j]['year_discharge_woo1'] == "自填"):
+            gas_text[j]['hour_discharge_woo1'] = "自填"
+            break
+        else:
+            gas_text[j]['hour_discharge_woo1'] = float(project.yearWorkTime) / float(project.yearWorkTime) / float(project.dayWorkTime)
+            gas_text[j]['year_discharge_woo1'] = float("%.4f" % gas_text[j]['year_discharge_woo1'])
+            gas_text[j]['hour_discharge_woo1'] = float("%.8f" % gas_text[j]['hour_discharge_woo1'])
+    project.exhaustGas = str(gas_text).replace("'", '"')
+    project.save()
+    return cal_discharge_without_organize2(project)
+def cal_discharge_without_organize2(project):
+    material_text=json.loads(project.exhaustGasMaterials)
+    gas_text=json.loads(project.exhaustGas)
+    print(gas_text)
+    for j in range(len(gas_text)):
+        gas_text[j]['year_discharge_woo2']=0
+    for i in range(len(material_text)):
+        for j in range(len(gas_text)):
+            if gas_text[j]['gasName']==material_text[i]['gasName']:
+                collectionEfficiency = gas_text[j]['collectionEfficiency']
+                processingEfficiency = gas_text[j]['processingEfficiency']
+                if (material_text[i]['ratio'] == "自填"):
+                    gas_text[j]['year_discharge_woo2'] = "自填"
+                else:
+                    gas_text[j]['year_discharge_woo2']+= float(material_text[i]['usage']) * float(material_text[i]['ratio']) * float(collectionEfficiency) * (1 - float(processingEfficiency))
+                break
+    print(gas_text)
+    for j in range(len(gas_text)):
+        if (gas_text[j]['year_discharge_woo2'] == "自填"):
+            break
+        else:
+            gas_text[j]['year_discharge_woo2'] = float("%.4f" % gas_text[j]['year_discharge_woo2'])
+    project.exhaustGas = str(gas_text).replace("'", '"')
+    project.save()
+    return gas_text
+
+
 
 

@@ -1,17 +1,11 @@
-import docx
-from docx import Document
-from docx.shared import Inches
 import xlwings as xw
-import os
 import pythoncom
-import datetime
-import random
-import docx
 from docx import Document
-from docx.shared import Inches
-from docx.enum.style import WD_STYLE_TYPE
+from .VBA import testVBA2
+import os
 import json
 from projects.models import Project
+from projects.models import ProjectFile
 def replace_text(old_text, new_text,document):
     for p in document.paragraphs:
         if old_text in p.text:
@@ -236,14 +230,15 @@ def create_tables(project,document):
                         gassheet = wb.sheets[gasName]
                         basesheet = wb.sheets["废气信息"]
 
-                        gassheet.range('a13').value = exhaustGas[t]['material']
-                        gassheet.range('c13').value = exhaustGas[t]['usage']
-                        gassheet.range('e13').value = exhaustGas[t]['ratio']
-                        gassheet.range('h4').value = str(float(gassheet.range('c13').value * float(gassheet.range('e13').value)))  # 待改
-                        gassheet.range('h9').value = str(float(gassheet.range('c13').value * float(gassheet.range('e13').value)))  # 待改
-                        gassheet.range('h14').value = str(float(gassheet.range('c13').value) * 1000)
-                        gassheet.range('i14').value = str(float(gassheet.range('e13').value))
-                        if(exhaustGas[t]['remark']==1):
+                        gassheet.range('l4').value = exhaustGas[t]['year_discharge_wo']
+                        gassheet.range('m4').value = exhaustGas[t]['hour_discharge_wo']
+                        gassheet.range('n4').value = exhaustGas[t]['concentration_wo']
+                        gassheet.range('o4').value = exhaustGas[t]['year_discharge_woo1']
+                        gassheet.range('p4').value = exhaustGas[t]['hour_discharge_woo1']
+                        gassheet.range('m9').value = exhaustGas[t]['year_discharge_woo1']
+                        gassheet.range('n9').value = exhaustGas[t]['hour_discharge_woo1']
+                        gassheet.range('h14').value = exhaustGas[t]['year_discharge_woo2']
+                        if(exhaustGas[t]['remark']=='有组织排放'):
                             newtable = cell.add_table(3, 9)
                             for a in range(0, 3):
                                 for b in range(0, 9):
@@ -254,7 +249,7 @@ def create_tables(project,document):
                             for s in styles:
                                 if s.name == "Table Grid":
                                     newtable.style = s
-                        elif (exhaustGas[t]['remark'] == 2):
+                        elif (exhaustGas[t]['remark'] == '无组织排放1'):
                             newtable = cell.add_table(3, 7)
                             for a in range(0, 3):
                                 for b in range(0, 7):
@@ -265,7 +260,7 @@ def create_tables(project,document):
                             for s in styles:
                                 if s.name == "Table Grid":
                                     newtable.style = s
-                        elif (exhaustGas[t]['remark'] == 3):
+                        elif (exhaustGas[t]['remark'] == '无组织排放2'):
                             newtable = cell.add_table(3, 5)
                             for a in range(0, 3):
                                 for b in range(0, 5):
@@ -303,10 +298,20 @@ def create_tables(project,document):
                     table_creater("三同时表", wb, 5, cell, i, column, styles)
     wb.close()
     app.quit()
-def createWord(request,projectName):
-    project = Project.objects.get(projectName=projectName)
+def createWord(request):
+    newjson = json.loads(request.body)
+    project = Project.objects.get(projectName=newjson['projectName'])
+    testVBA2(project,newjson['id'])
     document = Document('C:\\文件库\\模板\\评估报告(新建模板).docx')
-    print(projectName)
     replace_word(project,document)
     create_tables(project,document)
-    document.save('C:\\文件库\\Projects\\Company' + str(project.company_id) + '\\'+ project.projectName +"\\" + project.projectName + "(初稿).docx")
+    filedir = os.path.join('./media/project_' + str(newjson['id']) + '/环评报告初稿/')
+    if not os.path.isdir(filedir):
+        os.makedirs(filedir)
+    fileName = project.projectName + "(初稿).docx"
+    document.save(os.path.join(filedir, fileName))
+    temp = ProjectFile.objects.filter(project_id=newjson['id'], fileType='firstEIAReport')
+    temp.delete()
+    file = ProjectFile.objects.create(name=fileName, project_id=newjson['id'], filePath='project_' + str(newjson['id']) + '/环评报告初稿/' + fileName,fileType='firstEIAReport')
+    file.save()
+    document.save(os.path.join(filedir,fileName))

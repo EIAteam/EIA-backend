@@ -106,6 +106,7 @@ class Project(models.Model):
     material = models.TextField(blank=True, null=True, default='[{}]', verbose_name="材料")
     equipment = models.TextField(blank=True, null=True, default='[{}]', verbose_name="设备")
     exhaustGas = models.TextField(blank=True, null=True, default='[{}]', verbose_name="废气信息")
+    exhaustGasMaterials = models.TextField(blank=True, null=True, default='[{}]', verbose_name="废气材料信息")
     emissionStandard = models.TextField(null=True,
                                         default='[{"standard":"","pollutant":"","pollutantOptions":[],"emissionMonitoring":"","maximumAllowableEmissionRate":"","maximumAllowableEmissionConcentration":""}]',
                                         verbose_name='废弃排放标准')
@@ -153,7 +154,11 @@ class ProjectFile(models.Model):
         ('workshopNorthImg', '厂址四至图-北'),
         ('processFlowChart','工艺流程图'),
         ('planeLayoutChart','平面布置图'),
-        ('satelliteInformationChart','卫星信息图')
+        ('satelliteInformationChart', '卫星信息图'),
+        ('firstEIAReport','环评报告初稿'),
+        ('basicInfoFile', '基础信息表'),
+        ('exhaustGasInfoFile', '废气信息表'),
+        ('firstEIAReport', '环评报告终稿'),
     )
 
     def uploadFilePath(instance, filename):
