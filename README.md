@@ -10,4 +10,6 @@ djangorestframework (3.7.7)
 djangorestframework-jwt (1.11.0)
 mysqlclient (1.3.12)
 python-docx (0.8.6)
+pywin32 (223)
+xlwings (0.11.7)
 ```
