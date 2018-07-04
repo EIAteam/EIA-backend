@@ -161,9 +161,9 @@ class ProjectFile(models.Model):
         ('firstEIAReport', '环评报告终稿'),
     )
 
-    def uploadFilePath(instance, filename):
+    def uploadFilePath(instance, file):
         # file will be uploaded to MEDIA_ROOT/project_<id>/<fileType>/<filename>
-        return 'project_{0}\\{1}\\{2}'.format(instance.project_id, instance.get_fileType_display(), filename)
+        return 'project_{0}\\{1}\\{2}'.format(instance.project_id, instance.get_fileType_display(), file.name[-20:])
 
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="projectFile")
     name = models.CharField(blank=True, max_length=255, null=True, verbose_name="文件名")
