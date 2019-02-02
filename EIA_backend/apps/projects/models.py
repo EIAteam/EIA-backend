@@ -81,7 +81,7 @@ class Project(models.Model):
     south = models.CharField(blank=True, max_length=255, null=True, verbose_name="南")
     west = models.CharField(blank=True, max_length=255, null=True, verbose_name="西")
     north = models.CharField(blank=True, max_length=255, null=True, verbose_name="北")
-    longtitude = models.FloatField(blank=True, null=True, verbose_name="经度")
+    longitude = models.FloatField(blank=True, null=True, verbose_name="经度")
     latitude = models.FloatField(blank=True, null=True, verbose_name="纬度")
     township = models.CharField(blank=True, max_length=255, null=True, verbose_name="所在区镇")
     specialOptionForSewageTreatmentWorks = models.CharField(blank=True, max_length=255, null=True,
